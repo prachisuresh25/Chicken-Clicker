@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chicken Clicker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #1a1a1a, #000);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .app {
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      opacity: 0.75;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(12px);
+      border-radius: 18px;
+      padding: 32px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+    }
+
+    .chicken {
+      width: 200px;
+      cursor: pointer;
+      transition: transform 0.08s ease;
+      user-select: none;
+    }
+
+    .chicken:active {
+      transform: scale(0.95) rotate(-2deg);
+    }
+
+    .counter {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-top: 14px;
+    }
+
+    .message {
+      margin-top: 18px;
+      min-height: 40px;
+    }
+
+    .stats {
+      margin-top: 28px;
+      text-align: left;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      opacity: 0.8;
+      display: none;
+    }
+
+    .final {
+      margin-top: 28px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      display: none;
+    }
+
+    button {
+      margin-top: 18px;
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 12px 22px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      opacity: 0.85;
+    }
+
+    footer {
+      margin-top: 18px;
+      font-size: 0.8rem;
+      opacity: 0.4;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+  <h1>Chicken Clicker</h1>
+  <div class="subtitle">A serious platform for meaningless interaction.</div>
+
+  <div class="card">
+    <img src="Chicken_cartoon_04.svg.png" id="chicken" class="chicken" alt="Chicken"/>
+
+    <div class="counter">Clicks: <span id="count">0</span></div>
+    <div class="message" id="message">Please click the chicken respectfully.</div>
+
+    <div class="stats" id="stats">
+      <strong>Chicken Interaction Analytics</strong><br><br>
+      Productivity gained: <span id="productivity">0</span>%<br>
+      Time wasted: <span id="wasted">0s</span><br>
+      Chicken concern level: <span id="concern">low</span><br>
+      Purpose discovered: no
+    </div>
+
+    <div class="final" id="final"></div>
+  </div>
+
+  <footer>Not a game. Please stop looking for meaning.</footer>
+</div>
+
+<audio id="chickenSound" preload="auto">
+  <source src="chicken.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+  const chicken = document.getElementById("chicken");
+  const chickenSound = document.getElementById("chickenSound");
+  const countEl = document.getElementById("count");
+  const messageEl = document.getElementById("message");
+  const statsEl = document.getElementById("stats");
+  const finalEl = document.getElementById("final");
+  const productivityEl = document.getElementById("productivity");
+  const wastedEl = document.getElementById("wasted");
+  const concernEl = document.getElementById("concern");
+
+  let count = 0;
+  let startTime = null;
+  let timer = null;
+  let inactivityChecker = null;
+  let lastClickTime = null;
+  let sessionEnded = false;
+  let audioUnlocked = false;
+
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    chickenSound.volume = 0.4;
+    chickenSound.play().then(() => {
+      chickenSound.pause();
+      chickenSound.currentTime = 0;
+      audioUnlocked = true;
+    }).catch(() => {});
+  }
+
+  function startTimer() {
+    startTime = Date.now();
+    timer = setInterval(updateTimer, 1000);
+  }
+
+  function updateTimer() {
+    const diff = Date.now() - startTime;
+    const s = Math.floor(diff / 1000);
+    const m = Math.floor(s / 60);
+    wastedEl.textContent = m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
+  }
+
+  function stopTimer() {
+    clearInterval(timer);
+    clearInterval(inactivityChecker);
+  }
+
+  function showFinalStats(reason) {
+    if (sessionEnded) return;
+    sessionEnded = true;
+    stopTimer();
+
+    chicken.style.opacity = "0.3";
+    chicken.style.pointerEvents = "none";
+
+    finalEl.style.display = "block";
+    finalEl.innerHTML = `
+      🐔 Session Ended<br><br>
+      Reason: ${reason}<br>
+      Total clicks: ${count}<br>
+      Time wasted: ${wastedEl.textContent}<br>
+      Productivity achieved: ${productivityEl.textContent}%<br><br>
+      <button onclick="location.reload()">Pretend this never happened</button>
+    `;
+  }
+
+  const messages = [
+    "Good click.",
+    "The chicken noticed that.",
+    "You are still here.",
+    "This time is real.",
+    "The chicken is judging you.",
+    "Please stop."
+  ];
+
+  chicken.addEventListener("click", () => {
+    if (sessionEnded) return;
+
+    if (count === 0) {
+      unlockAudio();
+      startTimer();
+      statsEl.style.display = "block";
+
+      inactivityChecker = setInterval(() => {
+        if (Date.now() - lastClickTime > 3000) {
+          showFinalStats("User stopped clicking");
+        }
+      }, 1000);
+    }
+
+    lastClickTime = Date.now();
+
+    count++;
+    countEl.textContent = count;
+
+    chickenSound.currentTime = 0;
+    chickenSound.playbackRate = 0.9 + Math.random() * 0.2;
+    chickenSound.play().catch(() => {});
+
+    productivityEl.textContent = Math.max(0, 5 - Math.floor(count / 12));
+    concernEl.textContent =
+      count < 10 ? "low" :
+      count < 40 ? "moderate" :
+      count < 80 ? "high" : "critical";
+
+    messageEl.textContent = messages[Math.floor(Math.random() * messages.length)];
+
+    if (count > 120 && Math.random() < 0.04) {
+      showFinalStats("Chicken left on its own");
+    }
+  });
+</script>
+
+</body>
+</html>
